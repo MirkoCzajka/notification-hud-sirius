@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\MessageStatus;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ class MessagesController extends Controller
 
         $filters = $request->validate([
             'status'     => ['nullable','array','min:1'],
-            'status.*'   => ['string', Rule::in(['success','pending','failed'])],
+            'status.*'   => ['string', Rule::exists('message_statuses','key')],
             'services'   => ['nullable','array','min:1'],
             'services.*' => ['string', Rule::exists('services','name')],
             'from'       => ['nullable','date'],
@@ -31,7 +32,7 @@ class MessagesController extends Controller
             'per_page'   => ['nullable','integer','min:1','max:100'],
         ]);
 
-        $query = Message::query()->with(['service:id,name', 'user:id,username']);
+        $query = Message::query()->with(['service:id,name', 'user:id,username', 'statusRef:id,key,name']);
 
         $isAdmin = ($user->role?->type ?? null) === 'admin';
         if (!$isAdmin) {
@@ -39,7 +40,7 @@ class MessagesController extends Controller
         }
 
         if (!empty($filters['status'])) {
-            $query->whereIn('status', $filters['status']);
+            $query->whereIn('message_status_id', MessageStatus::whereIn('key', $filters['status'])->pluck('id'));
         }
 
         if (!empty($filters['services'])) {
@@ -98,7 +99,7 @@ class MessagesController extends Controller
                 DB::beginTransaction();
     
                 $message = new Message();
-                $message->status            = 'pending';
+                $message->message_status_id = MessageStatus::idByKey('pending');
                 $message->content           = $data['content'];
                 $message->user_id           = $user->id;
                 $message->service_id        = $service->id;
@@ -122,7 +123,7 @@ class MessagesController extends Controller
                 $respose = $clientService->postMessage($signed);
                 $ok = ($respose['ok'] ?? false) === true;
 
-                $message->status            = $ok ? 'success' : 'failed';
+                $message->message_status_id = MessageStatus::idByKey($ok ? 'success' : 'failed');
                 $message->date_sent         = $ok ? now() : null;
                 $message->provider_response = $respose ?? ['ok' => false, 'error' => 'no response'];
                 $message->save();
@@ -148,7 +149,7 @@ class MessagesController extends Controller
         }
 
         $anyOk = collect($results)->contains(fn($r) => $r['ok'] === true);
-        $status = $anyOk ? 201 : 207;
+        $status = $anyOk ? 201 : 400;
 
         return response()->json([
             'message' => $anyOk ? 'Message(s) sent' : 'No message was sent',
@@ -167,10 +168,11 @@ class MessagesController extends Controller
         }
 
         $today = Carbon::today();
+        $sentId = MessageStatus::idByKey('success');
 
         // total enviados por usuario
         $successTotals = Message::select('user_id', DB::raw("COUNT(*) as total_sent"))
-            ->where('status', 'success')
+            ->where('message_status_id', $sentId)
             ->groupBy('user_id')
             ->pluck('total_sent', 'user_id');
 
@@ -188,7 +190,7 @@ class MessagesController extends Controller
         // success sent today
         $todaySent = Message::select('user_id', DB::raw("COUNT(*) as count_today"))
             ->whereDate('created_at', $today->toDateString())
-            ->where('status', 'success')
+            ->where('message_status_id', $sentId)
             ->groupBy('user_id')
             ->pluck('count_today', 'user_id');
 

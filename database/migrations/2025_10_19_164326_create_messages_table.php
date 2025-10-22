@@ -13,12 +13,12 @@ return new class extends Migration {
             $table->text('content');
             $table->timestamp('date_sent')->nullable();
             $table->foreignId('service_id')->nullable()->constrained('services')->cascadeOnUpdate()->nullOnDelete();
-            $table->string('status');
+            $table->foreignId('message_status_id')->constrained('message_statuses')->cascadeOnUpdate()->restrictOnDelete();
             $table->json('provider_response')->nullable();
 
             $table->timestamps();
 
-            $table->index(['user_id', 'status']);
+            $table->index(['user_id', 'message_status_id']);
             $table->index('date_sent');
             $table->index('created_at');
             $table->index('service_id');
