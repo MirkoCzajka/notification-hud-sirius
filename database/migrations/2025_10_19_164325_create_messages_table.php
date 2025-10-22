@@ -20,6 +20,8 @@ return new class extends Migration {
 
             $table->index(['user_id', 'status']);
             $table->index('date_sent');
+            $table->index('created_at');
+            $table->index('service_id');
         });
     }
 

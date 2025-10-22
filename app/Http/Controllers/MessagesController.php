@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\Service;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -153,5 +154,71 @@ class MessagesController extends Controller
             'message' => $anyOk ? 'Message(s) sent' : 'No message was sent',
             'results' => $results,
         ], $status);
+    }
+
+    // GET /api/admin/metrics/messages
+    public function adminGetUsersMetrics()
+    {
+        $auth = Auth::guard('api')->user();
+        $auth->loadMissing('role');
+
+        if (($auth->role?->type ?? null) !== 'admin') {
+            return response()->json(['message' => 'You do not have permissions.'], 403);
+        }
+
+        $today = Carbon::today();
+
+        // total enviados por usuario
+        $successTotals = Message::select('user_id', DB::raw("COUNT(*) as total_sent"))
+            ->where('status', 'success')
+            ->groupBy('user_id')
+            ->pluck('total_sent', 'user_id');
+
+        // total intentos por usuario
+        $tryTotals = Message::select('user_id', DB::raw("COUNT(*) as total_try"))
+            ->groupBy('user_id')
+            ->pluck('total_try', 'user_id');
+
+        // tries today
+        $todayTries = Message::select('user_id', DB::raw("COUNT(*) as count_today"))
+            ->whereDate('created_at', $today->toDateString())
+            ->groupBy('user_id')
+            ->pluck('count_today', 'user_id');
+
+        // success sent today
+        $todaySent = Message::select('user_id', DB::raw("COUNT(*) as count_today"))
+            ->whereDate('created_at', $today->toDateString())
+            ->where('status', 'success')
+            ->groupBy('user_id')
+            ->pluck('count_today', 'user_id');
+
+        // usuarios y rol para el límite
+        $users = User::with(['role:id,type,daily_msg_limit'])
+            ->select('id','username','role_id')
+            ->get();
+
+        $rows = $users->map(function ($u) use ($successTotals, $tryTotals, $todayTries, $todaySent) {
+            $limit = (int) ($u->role?->daily_msg_limit ?? 0);
+            $triesToday = (int) ($todayTries[$u->id] ?? 0);
+
+            $remaining = ($limit === 0) ? 'unlimited' : max($limit - $triesToday, 0);
+
+            return [
+                'user_id'         => $u->id,
+                'username'        => $u->username,
+                'role'            => $u->role?->type,
+                'daily_msg_limit' => $limit,
+                'today_tries'     => (int) ($todayTries[$u->id] ?? 0),
+                'today_sent'      => (int) ($todaySent[$u->id] ?? 0),
+                'remaining_today' => $remaining,
+                'total_tries'     => (int) ($tryTotals[$u->id] ?? 0),
+                'total_sent'      => (int) ($successTotals[$u->id] ?? 0),
+            ];
+        })->values();
+
+        return response()->json([
+            'date'    => $today->toDateString(),
+            'metrics' => $rows,
+        ]);
     }
 }
