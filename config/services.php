@@ -40,5 +40,10 @@ return [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'default_channel' => env('TELEGRAM_CHANNEL_ID'),
     ],
+    
+    'discord' => [
+        'bot_token' => env('DISCORD_BOT_TOKEN'),
+        'default_channel' => env('DISCORD_CHANNEL_ID'),
+    ],
 
 ];

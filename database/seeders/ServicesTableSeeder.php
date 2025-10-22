@@ -23,5 +23,12 @@ class ServicesTableSeeder extends Seeder
                 'created_at' => now(), 'updated_at' => now(),
             ]
         );
+        DB::table('services')->updateOrInsert(
+            ['name' => 'discord'],
+            [
+                'endpoint'   => 'https://discord.com/api/v10/',
+                'created_at' => now(), 'updated_at' => now(),
+            ]
+        );
     }
 }

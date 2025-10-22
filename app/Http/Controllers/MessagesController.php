@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Services\SlackService;
 use App\Services\TelegramService;
+use App\Services\DiscordService;
 
 class MessagesController extends Controller
 {
@@ -32,19 +33,19 @@ class MessagesController extends Controller
 
         $data = $request->validate([
             'content'     => ['required','string'],
-            'services'    => ['required','array','min:1'],
-            'services.*'  => ['required','string', Rule::exists('services','name')],
+            'destinations'    => ['required','array','min:1'],
+            'destinations.*'  => ['required','string', Rule::exists('services','name')],
         ]);
 
-        $serviceRows = Service::whereIn('name', $data['services'])
+        $serviceRows = Service::whereIn('name', $data['destinations'])
             ->get()->keyBy(fn($s) => strtolower($s->name));
-        if ($serviceRows->count() !== count($data['services'])) {
+        if ($serviceRows->count() !== count($data['destinations'])) {
             return response()->json(['message' => 'At least one service entered was not found as an available service'], 422);
         }
         $signed = "From @{$user->username}: {$data['content']}";
         $results = [];
 
-        foreach ($data['services'] as $serviceName) {
+        foreach ($data['destinations'] as $serviceName) {
 
             $key = strtolower($serviceName);
             $service = $serviceRows->get($key);
@@ -70,6 +71,8 @@ class MessagesController extends Controller
                         $clientService = new SlackService($service->endpoint); break;
                     case 'telegram':
                         $clientService = new TelegramService($service->endpoint); break;
+                    case 'discord':
+                        $clientService = new DiscordService($service->endpoint); break;
                     default:
                         return response()->json([
                             'message' => "Service not configured: {$serviceName}."

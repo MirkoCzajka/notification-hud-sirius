@@ -22,7 +22,7 @@ class SlackService
             'text' => $text
         ];
 
-        $res = $this->http->post('chat.postMessage', [
+        $response = $this->http->post('chat.postMessage', [
             'headers' => [
                 'Authorization' => "Bearer {$this->token}",
                 'Content-Type'  => 'application/json; charset=utf-8',
@@ -31,6 +31,6 @@ class SlackService
             'http_errors' => false,
         ]);
 
-        return json_decode((string) $res->getBody(), true);
+        return json_decode((string) $response->getBody(), true);
     }
 }
