@@ -7,6 +7,7 @@ use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use App\Services\SlackService;
 use App\Services\TelegramService;
@@ -19,9 +20,47 @@ class MessagesController extends Controller
     {
         $user = Auth::guard('api')->user();
 
-        $messages = Message::where('user_id', $user->id)
+        $filters = $request->validate([
+            'status'     => ['nullable','array','min:1'],
+            'status.*'   => ['string', Rule::in(['success','pending','failed'])],
+            'services'   => ['nullable','array','min:1'],
+            'services.*' => ['string', Rule::exists('services','name')],
+            'from'       => ['nullable','date'],
+            'to'         => ['nullable','date'],
+            'per_page'   => ['nullable','integer','min:1','max:100'],
+        ]);
+
+        $query = Message::query()->with(['service:id,name', 'user:id,username']);
+
+        $isAdmin = ($user->role?->type ?? null) === 'admin';
+        if (!$isAdmin) {
+            $query->where('user_id', $user->id);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->whereIn('status', $filters['status']);
+        }
+
+        if (!empty($filters['services'])) {
+            $serviceIds = Service::whereIn('name', $filters['services'])->pluck('id');
+            $query->whereIn('service_id', $serviceIds);
+        }
+
+        if (!empty($filters['from']) || !empty($filters['to'])) {
+            $from = !empty($filters['from'])
+                ? Carbon::parse($filters['from'])->startOfDay()
+                : Carbon::create(1990,1,1);
+            $to = !empty($filters['to'])
+                ? Carbon::parse($filters['to'])->endOfDay()
+                : Carbon::now()->endOfDay();
+
+            $query->whereBetween('created_at', [$from, $to]);
+        }
+
+        $messages = $query
             ->latest('id')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate($request->integer('per_page', 15))
+            ->appends($request->query());
 
         return response()->json($messages);
     }
