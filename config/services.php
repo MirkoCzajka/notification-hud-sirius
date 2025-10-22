@@ -30,5 +30,15 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    
+    'slack' => [
+        'bot_token' => env('SLACK_BOT_TOKEN'),
+        'default_channel' => env('SLACK_CHANNEL_ID'),
+    ],
+    
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'default_channel' => env('TELEGRAM_CHANNEL_ID'),
+    ],
 
 ];
