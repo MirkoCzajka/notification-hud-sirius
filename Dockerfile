@@ -71,8 +71,5 @@ COPY docker/supervisord.conf        /etc/supervisord.conf
 COPY docker/start.sh                /start.sh
 RUN chmod +x /start.sh
 
-# Render setea $PORT; exponemos 10000 por convención local
 EXPOSE 10000
-
-# Levanta supervisord (que lanza nginx + php-fpm)
 CMD ["/start.sh"]
