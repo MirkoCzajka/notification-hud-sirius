@@ -73,7 +73,7 @@ class MessagesController extends Controller
         $user = Auth::guard('api')->user();
 
         $data = $request->validate([
-            'content'     => ['required','string'],
+            'content'         => ['required','string'],
             'destinations'    => ['required','array','min:1'],
             'destinations.*'  => ['required','string', Rule::exists('services','name')],
         ]);
@@ -109,11 +109,17 @@ class MessagesController extends Controller
     
                 switch ($serviceName) {
                     case 'slack':
-                        $clientService = new SlackService($service->endpoint); break;
+                        $clientService = app()->makeWith(SlackService::class, [
+                                            'endpoint' => $service->endpoint,
+                                        ]); break;
                     case 'telegram':
-                        $clientService = new TelegramService($service->endpoint); break;
+                        $clientService = app()->makeWith(TelegramService::class, [
+                                            'endpoint' => $service->endpoint,
+                                        ]); break;
                     case 'discord':
-                        $clientService = new DiscordService($service->endpoint); break;
+                        $clientService = app()->makeWith(DiscordService::class, [
+                                            'endpoint' => $service->endpoint,
+                                        ]); break;
                     default:
                         return response()->json([
                             'message' => "Service not configured: {$serviceName}."
@@ -161,9 +167,11 @@ class MessagesController extends Controller
     public function adminGetUsersMetrics()
     {
         $auth = Auth::guard('api')->user();
-        $auth->loadMissing('role');
-
-        if (($auth->role?->type ?? null) !== 'admin') {
+        if (!$auth) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+        $auth = $auth->fresh(['role']);
+        if (($auth->role->type ?? null) !== 'admin') {
             return response()->json(['message' => 'You do not have permissions.'], 403);
         }
 

@@ -11,7 +11,7 @@ class TelegramService
 
     public function __construct(string $endpoint)
     {
-        $this->token = env('TELEGRAM_BOT_TOKEN');
+        $this->token = env('TELEGRAM_BOT_TOKEN', 'TEST_TOKEN');
         $this->http = new Client([
             'base_uri' => $endpoint . "bot{$this->token}/",
             'http_errors' => false,

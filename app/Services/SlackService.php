@@ -12,7 +12,7 @@ class SlackService
     public function __construct(string $endpoint)
     {
         $this->http = new Client(['base_uri' => $endpoint]);
-        $this->token = env('SLACK_BOT_TOKEN');
+        $this->token = env('SLACK_BOT_TOKEN', 'TEST_TOKEN');
     }
 
     public function postMessage(string $text): array

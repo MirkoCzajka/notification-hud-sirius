@@ -1,5 +1,8 @@
 services:
   app:
+    environment:
+        APP_ENV: local
+        APP_DEBUG: "true" 
     user: "${UID}:${GID}"
     build:
       context: .

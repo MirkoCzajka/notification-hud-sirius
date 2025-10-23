@@ -3,22 +3,22 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class AdminUser
 {
-    public function handle(Request $request, Closure $next)
+    public function handle($request, Closure $next)
     {
         $user = Auth::guard('api')->user();
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $isAdmin = ($user->role?->type ?? null) === 'admin';
-        if (!$isAdmin) {
+        $user = $user->fresh(['role']);
+        if (($user->role->type ?? null) !== 'admin') {
             return response()->json([
-                'message' => 'You do not have permissions to access this endpoint.'
+                'message' => 'You do not have permissions to access this endpoint.',
             ], 403);
         }
 

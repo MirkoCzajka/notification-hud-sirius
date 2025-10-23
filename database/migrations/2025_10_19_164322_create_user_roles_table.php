@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->string('type')->unique();
             $table->string('description')->nullable();
             $table->unsignedInteger('daily_msg_limit')->default(0);
-            $table->json('permissions')->nullable();          // permisos como JSON (array de strings/flags)
+            $table->json('permissions')->nullable();
             $table->timestamps();
         });
     }

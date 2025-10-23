@@ -24,7 +24,6 @@ class User extends Authenticatable implements JWTSubject
         'remember_token',
     ];
 
-    // En Laravel 10/11/12 podés castear password para que se hashee solo
     protected $casts = [
         'password' => 'hashed',
     ];
