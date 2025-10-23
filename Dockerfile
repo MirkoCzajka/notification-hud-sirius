@@ -1,5 +1,5 @@
 # ---------- Stage 1: vendor ----------
-FROM composer:2 AS vendor
+FROM composer:2-php8.3 AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist --no-progress
