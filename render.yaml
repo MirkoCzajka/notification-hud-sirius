@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: sirius-notif
+    env: docker         # usa tu Dockerfile del repo
+    plan: free
+    autoDeploy: false   # lo disparará tu workflow (deploy job)
+    healthCheckPath: /api/_ping
+    # Si necesitás variables:
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      # el APP_KEY y secretos reales, mejor cargarlos como "secret" en Render UI
