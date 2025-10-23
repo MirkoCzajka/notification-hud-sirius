@@ -17,6 +17,29 @@ use App\Services\DiscordService;
 
 class MessagesController extends Controller
 {
+    /**
+     * @OA\Post(
+     *   path="/api/login",
+     *   tags={"Auth"},
+     *   summary="Login y obtiene JWT",
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(
+     *       required={"username","password"},
+     *       @OA\Property(property="username", type="string", example="admin"),
+     *       @OA\Property(property="password", type="string", example="secret")
+     *     )
+     *   ),
+     *   @OA\Response(response=200, description="OK",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="access_token", type="string"),
+     *       @OA\Property(property="token_type",   type="string", example="bearer"),
+     *       @OA\Property(property="expires_in",   type="integer", example=3600)
+     *     )
+     *   ),
+     *   @OA\Response(response=401, description="Invalid credentials")
+     * )
+     */
     // GET /api/messages
     public function index(Request $request)
     {
@@ -163,6 +186,33 @@ class MessagesController extends Controller
         ], $status);
     }
 
+    /**
+     * @OA\Get(
+     *   path="/api/admin/metrics/messages",
+     *   tags={"Admin"},
+     *   summary="Métricas de mensajes por usuario (solo admin)",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Response(response=200, description="OK",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="date", type="string", format="date"),
+     *       @OA\Property(property="metrics", type="array",
+     *         @OA\Items(
+     *           @OA\Property(property="user_id",         type="integer"),
+     *           @OA\Property(property="username",        type="string"),
+     *           @OA\Property(property="role",            type="string"),
+     *           @OA\Property(property="daily_msg_limit", type="integer"),
+     *           @OA\Property(property="today_tries",     type="integer"),
+     *           @OA\Property(property="today_sent",      type="integer"),
+     *           @OA\Property(property="remaining_today", type="integer"),
+     *           @OA\Property(property="total_tries",     type="integer"),
+     *           @OA\Property(property="total_sent",      type="integer")
+     *         )
+     *       )
+     *     )
+     *   ),
+     *   @OA\Response(response=403, description="Forbidden")
+     * )
+     */
     // GET /api/admin/metrics/messages
     public function adminGetUsersMetrics()
     {
