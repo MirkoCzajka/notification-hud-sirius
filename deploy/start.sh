@@ -2,14 +2,9 @@
 set -e
 
 PORT="${PORT:-10000}"
-# Ajustar puerto en nginx.conf
-sed -i "s/listen 0.0.0.0:10000;/listen 0.0.0.0:${PORT};/" /etc/nginx/nginx.conf
 
-# Warmups/migraciones (si falla, seguimos)
-php artisan config:cache || true
-php artisan route:cache || true
-php artisan view:cache || true
-php artisan migrate --force || true
+# Render inyecta $PORT; templating simple
+sed "s/__PORT__/${PORT}/g" /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
-# Levantar nginx + php-fpm
+# Arranca supervisor (levanta php-fpm + nginx)
 exec /usr/bin/supervisord -c /etc/supervisord.conf
