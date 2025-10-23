@@ -1,23 +1,22 @@
 #!/usr/bin/env sh
 set -e
 
-# Render define $PORT. Si no, usa 10000 por defecto.
-PORT="${PORT:-10000}"
-
-# Generar el vhost desde la plantilla
-sed "s/%%PORT%%/${PORT}/g" /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
-
-# Permisos de Laravel (por si el sistema de archivos llega limpio)
-mkdir -p storage/framework/{cache,data,sessions,views} bootstrap/cache
+# Ajustes de permisos/carpetas necesarias
+mkdir -p storage/framework/{cache,data,sessions,views} bootstrap/cache /run/nginx
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
-# Variables de entorno útiles para Laravel
-export APP_ENV="${APP_ENV:-production}"
-export APP_DEBUG="${APP_DEBUG:-false}"
+# Variable PORT (Render la inyecta). Si no está, default 8080 para local.
+export PORT="${PORT:-8080}"
 
-# Migraciones automáticas si quieres (opcional, coméntalo si no aplica con SQLite)
-# php artisan migrate --force || true
+# Sustituir la variable ${PORT} en la plantilla del site
+envsubst '$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
-# Arranca todo con supervisord
+# Opcional: optimizaciones de Laravel (no fallar si falta .env en build)
+php -r "file_exists('artisan') && @passthru('php artisan optimize:clear');"
+php -r "file_exists('artisan') && @passthru('php artisan config:cache');" || true
+php -r "file_exists('artisan') && @passthru('php artisan route:cache');" || true
+php -r "file_exists('artisan') && @passthru('php artisan view:cache');" || true
+
+# Levantar supervisor (que lanza php-fpm + nginx)
 exec /usr/bin/supervisord -c /etc/supervisord.conf

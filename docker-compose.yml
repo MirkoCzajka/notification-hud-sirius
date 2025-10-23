@@ -3,6 +3,9 @@ services:
     environment:
         APP_ENV: local
         APP_DEBUG: "true" 
+        environment:
+          - UID=${UID}
+          - GID=${GID}
     user: "${UID}:${GID}"
     build:
       context: .
