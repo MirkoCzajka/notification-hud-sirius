@@ -1,10 +1,19 @@
-# ---------- Stage 1: vendor ----------
-FROM composer:2-php8.3 AS vendor
+# ---------- Stage 1: vendor (composer corriendo con PHP 8.3) ----------
+FROM php:8.3-cli-alpine AS vendor
+
+# Paquetes mínimos para composer + extensiones que tu app requiere al instalar
+RUN apk add --no-cache bash git unzip icu-dev oniguruma-dev libzip-dev \
+ && docker-php-ext-install intl zip mbstring
+
+# Instalar el binario de composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 WORKDIR /app
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --no-progress
+# (si usas autoload de rutas/seeders que requieren archivos, añade COPY de esos dirs antes del install)
+RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
 
-# ---------- Stage 2: app (nginx + php-fpm + supervisord) ----------
+# ---------- Stage 2: runtime (php-fpm 8.3) ----------
 FROM php:8.3-fpm-alpine
 
 RUN apk add --no-cache \
@@ -12,35 +21,15 @@ RUN apk add --no-cache \
     icu-dev oniguruma-dev libzip-dev \
     libpng-dev libjpeg-turbo-dev freetype-dev \
     sqlite-dev mariadb-client \
-    nginx supervisor
-
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install -j$(nproc) \
-    pdo pdo_mysql pdo_sqlite \
-    mbstring intl zip bcmath pcntl exif gd
-
-ENV COMPOSER_ALLOW_SUPERUSER=1
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+ && docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install -j"$(nproc)" \
+    pdo pdo_mysql pdo_sqlite mbstring intl zip bcmath pcntl exif gd
 
 WORKDIR /var/www/html
-COPY . /var/www/html
-COPY --from=vendor /app/vendor /var/www/html/vendor
 
-# Configs de runtime
-COPY deploy/nginx.conf /etc/nginx/nginx.conf
-COPY deploy/supervisord.conf /etc/supervisord.conf
-COPY deploy/start.sh /start.sh
-RUN chmod +x /start.sh
+# Copiamos vendor resuelto con PHP 8.3
+COPY --from=vendor /app/vendor ./vendor
+# Copiamos el resto del código
+COPY . .
 
-# Preparar storage y permisos (incluye sqlite demo)
-RUN mkdir -p storage/framework/{cache,sessions,views} \
-    && mkdir -p storage/logs storage/database bootstrap/cache \
-    && touch storage/database/database.sqlite \
-    && chown -R www-data:www-data /var/www/html \
-    && chmod -R ug+rwX storage bootstrap/cache
-
-# Render inyecta $PORT (default 10000 por si corrés local)
-ENV PORT=10000
-EXPOSE 10000
-
-CMD ["/start.sh"]
+# (si usas nginx/supervisord, añade aquí tu entrypoint/cmd/puerto)
