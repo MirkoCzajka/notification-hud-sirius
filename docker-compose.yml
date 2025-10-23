@@ -1,18 +1,18 @@
 services:
   app:
-    environment:
-        APP_ENV: local
-        APP_DEBUG: "true" 
-        environment:
-          - UID=${UID}
-          - GID=${GID}
-    user: "${UID}:${GID}"
     build:
       context: .
       dockerfile: Dockerfile
+    command: ["php-fpm","-F"]
+    working_dir: /var/www/html
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      LOG_CHANNEL: stderr
     volumes:
       - ./:/var/www/html
-    env_file: .env
+      - storage:/var/www/html/storage
+      - cache:/var/www/html/bootstrap/cache
     depends_on:
       db:
         condition: service_started
@@ -36,9 +36,11 @@ services:
       MARIADB_PASSWORD: secret
       MARIADB_ROOT_PASSWORD: root
     ports:
-      - "3307:3306"   # host:container (podés quitarlo si no querés exponer DB al host)
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
 
 volumes:
   db_data:
+  storage:
+  cache:
