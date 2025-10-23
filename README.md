@@ -41,3 +41,16 @@ GET /api/messages
 GET /api/admin/metrics/message
     Descripción: Presenta unicamente al usuario administrador métricas de envío de mensajes totales y restantes por cada usaurio.
     Parámetros: -
+
+
+DESCRIPCIÓN DE TESTS:
+
+AuthTest: funcionamiento del endpoint /api/register y /api/login para un usuario.
+
+SendMessageTest: funcionamiento del endpoint /api/send_message donde se comprueba el envío de mensajes por parte del usuario
+
+DailyLimitMiddelwareTest: funcionamiento del límite diario de mensajes comprobando que no se puede superar el límite establecido según el rol de usuario.
+
+MessagesIndexFiltersTest: funcionamiento del endpoint /api/messages donde se prueban los filtros básico establecidos para listar los mensajes del usuario.
+
+AdminMetricsTest: funcionamiento del endpoint /api/admin/metrics/message donde se deben visualizar las métricas para el usuario admin
